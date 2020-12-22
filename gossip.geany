@@ -29,12 +29,17 @@ long_line_column=72
 
 [files]
 current_page=0
-FILE_NAME_0=926;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fgossip.go;0;2
-FILE_NAME_1=7;None;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fgo.mod;0;2
-FILE_NAME_2=741;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Futils%2Futilities.go;0;2
-FILE_NAME_3=466;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fconfig.go;0;2
-FILE_NAME_4=2492;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fgossip.go;0;2
+FILE_NAME_0=1432;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fgossip.go;0;2
+FILE_NAME_1=44;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Futils%2Futilities.go;0;2
+FILE_NAME_2=818;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Futils%2Ftestspecs.go;0;2
+FILE_NAME_3=799;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fold%2Flimiter.go;0;2
+FILE_NAME_4=2986;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fgossip.go;0;2
 FILE_NAME_5=98;Conf;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fgossip.cfg;0;2
+FILE_NAME_6=56;YAML;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Ftests%2Ftest1.yaml;0;2
+FILE_NAME_7=2154;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Ftestspecs.go;0;2
+FILE_NAME_8=165;YAML;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Ftests%2Ftest1.yaml;0;2
+FILE_NAME_9=0;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fmessage.go;0;2
+FILE_NAME_10=118;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fprovider.go;0;2
 
 [VTE]
 last_dir=/home/me/projects/gossip
@@ -66,3 +71,6 @@ GoFT_00_LB=_Build
 GoFT_00_CM=go build
 GoFT_00_WD=%p
 filetypes=Go;
+GoFT_01_LB=Go vet
+GoFT_01_CM=go vet
+GoFT_01_WD=%p

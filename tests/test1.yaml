@@ -1,0 +1,13 @@
+---
+suite: this test suite
+tests:
+  - name: the first test
+    description: nothing to see here
+    comments:
+      - what is this?
+      - failed from the beginning
+    calls:
+      - number: 420999888777
+        seq:
+        - out: INVITE
+          to: 4797778239

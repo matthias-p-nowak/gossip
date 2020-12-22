@@ -15,3 +15,5 @@
 # vendor/
 gossip
 *.log
+snippets.go
+notes/
