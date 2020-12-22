@@ -29,8 +29,12 @@ long_line_column=72
 
 [files]
 current_page=0
-FILE_NAME_0=156;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fgossip.go;0;2
-FILE_NAME_1=138;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Ftmp%2Fgo1%2Fgo1.go;0;2
+FILE_NAME_0=926;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fgossip.go;0;2
+FILE_NAME_1=7;None;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fgo.mod;0;2
+FILE_NAME_2=741;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Futils%2Futilities.go;0;2
+FILE_NAME_3=466;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fconfig.go;0;2
+FILE_NAME_4=2492;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fgossip.go;0;2
+FILE_NAME_5=98;Conf;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fgossip.cfg;0;2
 
 [VTE]
 last_dir=/home/me/projects/gossip
@@ -56,7 +60,7 @@ NF_00_LB=_Make
 NF_00_CM=go build
 NF_00_WD=%p
 EX_00_LB=_Run
-EX_00_CM=go run gossip.go
+EX_00_CM=go run gossip.go tests
 EX_00_WD=%p
 GoFT_00_LB=_Build
 GoFT_00_CM=go build
