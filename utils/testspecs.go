@@ -11,8 +11,15 @@ var (
 	Suites []*TestSuite
 )
 
+type CallItem struct {
+  Alias string `yaml:"alias"`
+  Out string `yaml:"out"`
+  To string `yaml:"to"`
+}
+
 type CallParty struct {
   Number string  `yaml:"number"`  
+  Steps []*CallItem `yaml:"steps"`
 }
 
 // SingleTest describes one single test
@@ -55,7 +62,6 @@ func ReadSpec(fn string, info os.FileInfo, err error) error {
 func GetAllTests(cfg *Config)(chan *SingleTest){
   ch:=make(chan *SingleTest)
   go func(){
-    log.Println("starting inner loop")
     for i := 0; i < cfg.Loops; i++ {
       if cfg.Continuous {
         i = 0

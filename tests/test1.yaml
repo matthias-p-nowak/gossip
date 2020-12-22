@@ -8,6 +8,6 @@ tests:
       - failed from the beginning
     calls:
       - number: 420999888777
-        seq:
+        steps:
         - out: INVITE
           to: 4797778239
