@@ -13,19 +13,27 @@ var (
 
 type CallItem struct {
   Alias string `yaml:"alias"`
+  Previous string `yaml:"previous"`
   Out string `yaml:"out"`
   To string `yaml:"to"`
+  Headers string `yaml:"headers"`
+  // reverse link
+  RLcallParty *CallParty
 }
 
 type CallParty struct {
   Number string  `yaml:"number"`  
   Steps []*CallItem `yaml:"steps"`
+  // reverse link
+  RLsingleTest *SingleTest
 }
 
 // SingleTest describes one single test
 type SingleTest struct {
 	Name string `yaml:"name"`
   CallParties []*CallParty `yaml:"calls"`
+  // reverse link
+  RLtestSuite *TestSuite
 }
 
 
@@ -33,6 +41,8 @@ type SingleTest struct {
 type TestSuite struct {
 	Name  string      `yaml:"suite"`
 	Tests []*SingleTest `yaml:"tests"`
+  // reverse link
+  RLfileName string
 }
 
 func ReadSpec(fn string, info os.FileInfo, err error) error {
@@ -55,6 +65,16 @@ func ReadSpec(fn string, info os.FileInfo, err error) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+  ts.RLfileName=fn
+  for _,st:= range ts.Tests {
+    st.RLtestSuite=ts
+    for _,cp:= range st.CallParties {
+      cp.RLsingleTest = st
+      for _,ci:= range cp.Steps {
+        ci.RLcallParty=cp
+      }
+    }
+  }
   Suites=append(Suites,ts)
 	return err
 }

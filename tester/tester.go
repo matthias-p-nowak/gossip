@@ -4,6 +4,7 @@ import (
   "gossip/utils"
   "sync"
   "log"
+  "gossip/sipmsg"
 )
 
 var (
@@ -22,40 +23,97 @@ type Tester struct {
 func (te *Tester) Run() {
   defer utils.Release()
   defer te.lock.Unlock()
+  te.running=true
   cps:=len(te.test.CallParties)
   te.wg_setup.Add(cps)
   te.wg_run.Add(cps)
   te.wg_down.Add(cps)
   for cp:=0;cp<cps; cp++ {
-    go te.RunCall(cp)
+    pt:=te.CreatePartyTest(cp)
+    go pt.RunCall()
   }
   te.wg_down.Wait()
 }
 
-func (te *Tester) RunCall(cp int) {
-  // prep
-  party:=te.test.CallParties[cp]
-  number:=party.Number
-  log.Println("setting up for "+number)
-  steps:=make(map[string]int)
-  for i,ci:=range party.Steps {
-    if len(ci.Alias)>0 {
-      steps[ci.Alias]=i
-    }
-  }
-  // barrier
-  te.wg_setup.Done()
-  te.wg_setup.Wait()
-  // the run
-  
-  // barrier
-  te.wg_run.Done()
-  te.wg_run.Wait()
-  // cleanup
-  // and signal end
-  te.wg_down.Done()
+func (te *Tester) CreatePartyTest(cp int)(pt *PartyTest){
+  pt=new(PartyTest)
+  pt.te=te
+  pt.party=te.test.CallParties[cp]
+  return 
 }
 
+type PartyTest struct {
+  te *Tester 
+
+  party *utils.CallParty
+  next string
+  previous string
+  si int
+  steps map[string]int
+  msgs [] *sipmsg.SipMsg
+}
+
+func(pt *PartyTest) RunCall(){
+  number:=pt.party.Number
+  log.Println("setting up for "+number)
+  pt.steps=make(map[string]int)
+  for i,ci:=range pt.party.Steps {
+    if len(ci.Alias)>0 {
+      pt.steps[ci.Alias]=i
+    }
+  }
+  // TODO register in director
+  // barrier
+  pt.te.wg_setup.Done()
+  pt.te.wg_setup.Wait()
+   // the run
+  for pt.si=0; pt.si < len(pt.party.Steps); pt.advance(){
+    if ! pt.te.running{
+      break
+    }
+    pt.execute(pt.party.Steps[pt.si])
+  }
+  // barrier
+  pt.te.wg_run.Done()
+  pt.te.wg_run.Wait()
+  // cleanup
+  // and signal end
+  pt.te.wg_down.Done()
+}
+
+func (pt* PartyTest) advance(){
+  if len(pt.next)>0 {
+    pt.si=pt.steps[pt.next]
+  } else {
+    pt.si++
+  }
+}
+
+func (pt* PartyTest) execute(ci *utils.CallItem){
+  if len(ci.Out)>0 {
+    req:=sipmsg.SipType(ci.Out)
+    if req < 100 {
+      msg:=pt.makeRequest(ci,req)
+      _=msg
+    }
+  }
+}
+
+func (pt* PartyTest) makeRequest(ci *utils.CallItem, req int)(msg *sipmsg.SipMsg){
+  msg=new(sipmsg.SipMsg)
+  var prev *sipmsg.SipMsg
+  // TODO if previous is specified, use that one
+  // else
+  {
+    l:=len(pt.msgs)
+    if l >= 2 {
+      prev=pt.msgs[l-2]
+    }
+  }
+  b:=build(prev,ci,req)
+  _=b
+  return
+}
 
 func Create(test *utils.SingleTest) (te * Tester){
   // Create is called in main thread

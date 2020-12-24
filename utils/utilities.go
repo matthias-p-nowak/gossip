@@ -5,8 +5,16 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+  "time"
+	"math/rand"
 	//"os"
 	//"io"
+)
+
+
+var (
+	// Alphabet comprises the symbols for creating random strings
+	Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
 // Config contains the config data provided by YAML
@@ -26,6 +34,8 @@ func (cfg *Config) init() {
 	cfg.Concurrent = 1
 	cfg.Local = []string{"udp/0.0.0.0:5065"}
 	cfg.Remote = []string{"udp/localhost:5060"}
+	t := time.Now().Unix()
+	rand.Seed(t)
 
 }
 
@@ -46,3 +56,13 @@ func GetConfig(fn string) (cfg *Config, err error) {
 	return
 }
 
+
+// RandStrings returns a string of length <l>
+func RandString(l int) string {
+	aLen := len(Alphabet)
+	bb := make([]byte, l)
+	for i := 0; i < l; i++ {
+		bb[i] = Alphabet[rand.Intn(aLen)]
+	}
+	return string(bb)
+}

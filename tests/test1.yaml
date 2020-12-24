@@ -11,3 +11,6 @@ tests:
         steps:
         - out: INVITE
           to: 4797778239
+          headers: |
+            Call-Id: {{ RandStr 10}}
+          alias: initial invite
