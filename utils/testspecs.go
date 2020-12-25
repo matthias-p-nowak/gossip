@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+  "strings"
 )
 
 var (
@@ -17,8 +18,32 @@ type CallItem struct {
   Out string `yaml:"out"`
   To string `yaml:"to"`
   Headers string `yaml:"headers"`
+  Allow string `yaml:"allow"`
+  Supported string `yaml:"supported"`
+  Required string `yaml:"required"`
+  Sdp string `yaml:"sdp"`
+  // prepared stuff
+  AllowTags map[string]bool
+  SupportedTags map[string]bool
+  RequiredTags map[string]bool
+  SdpTags map[string]bool
   // reverse link
   RLcallParty *CallParty
+}
+
+func getTags(str string)(m map[string]bool){
+  m=make(map[string]bool)
+  for _,s:= range strings.Fields(str){
+    m[s]=true
+  }
+  return
+}
+
+func (ci *CallItem) prepare(){
+  ci.AllowTags=getTags(ci.Allow)
+  ci.SupportedTags=getTags(ci.Supported)
+  ci.RequiredTags=getTags(ci.Required)
+  ci.SdpTags=getTags(ci.Sdp)
 }
 
 type CallParty struct {
@@ -72,6 +97,7 @@ func ReadSpec(fn string, info os.FileInfo, err error) error {
       cp.RLsingleTest = st
       for _,ci:= range cp.Steps {
         ci.RLcallParty=cp
+        ci.prepare()
       }
     }
   }

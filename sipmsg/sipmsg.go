@@ -5,6 +5,7 @@ import (
   "strconv"
   "log"
   "strings"
+  "errors"
 )
 
 const (
@@ -14,6 +15,11 @@ const (
   ReqBye
   ReqAck
   ReqPrack
+)
+
+const (
+  DirIn = iota
+  DirOut 
 )
 
 var (
@@ -71,4 +77,31 @@ type SipMsg struct {
   Transaction *SipTransaction
   Prev *SipMsg
   Req *SipMsg
+  // SipType: either from enum or 3digit
+  SipType int
+  Headers MsgHeaders
+  Direction int // enum 
+}
+
+func (msg *SipMsg) Retrieve(str string) error{
+  if msg.Headers == nil {
+    msg.Headers= make(MsgHeaders)
+  }
+  str=strings.ReplaceAll(str,"\r\n","\n")
+  strs:=strings.Split(str,"\n")
+  for _,str=range strs {
+    str=strings.TrimSpace(str)
+    log.Printf("str '%s' is %d long\n", str, len(str))
+    if len(str)==0 {
+      continue
+    }
+    parts:=strings.SplitN(str,":",2)
+    if len(parts)<2 {
+      return errors.New(str)
+    }
+    key:=strings.TrimSpace(parts[0])
+    value:=strings.TrimSpace(parts[1])
+    msg.Headers[key]=append(msg.Headers[key],value)
+  }
+  return nil
 }
