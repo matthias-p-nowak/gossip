@@ -58,7 +58,7 @@ func main(){
   // ----- running all the tests
   utils.Limiter(cfg)
   for t:=range utils.GetAllTests(cfg) {
-    tr:=tester.Create(t)
+    tr:=tester.Create(t,cfg)
     go tr.Run()
   }
   utils.Wait()

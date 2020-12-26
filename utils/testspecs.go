@@ -17,16 +17,20 @@ type CallItem struct {
   Previous string `yaml:"previous"`
   Out string `yaml:"out"`
   To string `yaml:"to"`
+  Noa string `yaml:"noa"`
   Headers string `yaml:"headers"`
   Allow string `yaml:"allow"`
   Supported string `yaml:"supported"`
   Required string `yaml:"required"`
   Sdp string `yaml:"sdp"`
+  Tags string `yaml:"tags"`
+  Templates map[string]string `yaml:"templates"`
   // prepared stuff
   AllowTags map[string]bool
   SupportedTags map[string]bool
   RequiredTags map[string]bool
   SdpTags map[string]bool
+  TagsTags map[string]bool
   // reverse link
   RLcallParty *CallParty
 }
@@ -44,10 +48,12 @@ func (ci *CallItem) prepare(){
   ci.SupportedTags=getTags(ci.Supported)
   ci.RequiredTags=getTags(ci.Required)
   ci.SdpTags=getTags(ci.Sdp)
+  ci.TagsTags=getTags(ci.Tags)
 }
 
 type CallParty struct {
   Number string  `yaml:"number"`  
+  Noa string `yaml:"noa"`
   Steps []*CallItem `yaml:"steps"`
   // reverse link
   RLsingleTest *SingleTest

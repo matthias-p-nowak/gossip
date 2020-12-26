@@ -9,10 +9,12 @@ import (
 
 var (
   testLocks=make(map[*utils.SingleTest] *sync.Mutex)
+  remIdx int
 )
 
 type Tester struct {
   test *utils.SingleTest
+  Remote string // the selected remote side
   lock *sync.Mutex
   running bool
   wg_setup sync.WaitGroup
@@ -62,7 +64,8 @@ func(pt *PartyTest) RunCall(){
       pt.steps[ci.Alias]=i
     }
   }
-  // TODO register in director
+  // TODO get a remote side
+  
   // barrier
   pt.te.wg_setup.Done()
   pt.te.wg_setup.Wait()
@@ -110,13 +113,13 @@ func (pt* PartyTest) makeRequest(ci *utils.CallItem, req int)(msg *sipmsg.SipMsg
       prev=pt.msgs[l-2]
     }
   }
-  b:=build(prev,ci,req)
-  // TODO 
+  b:=build(prev,ci,req,pt.te.Remote)
+  // TODO send the message to the provider to send it further
   _=b
   return
 }
 
-func Create(test *utils.SingleTest) (te * Tester){
+func Create(test *utils.SingleTest, cfg *utils.Config) (te * Tester){
   // Create is called in main thread
   lock, ok := testLocks[test]
   if !ok {
@@ -127,6 +130,9 @@ func Create(test *utils.SingleTest) (te * Tester){
   te=new(Tester)
   te.test=test
   te.lock=lock // avoiding to lookup the map
+  remotes:=cfg.Remote
+  remIdx=(remIdx+1) % len(remotes)
+  te.Remote=remotes[remIdx]
   utils.Claim()
   return
 }

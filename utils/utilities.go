@@ -53,6 +53,8 @@ func GetConfig(fn string) (cfg *Config, err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+  data,err=yaml.Marshal(cfg)
+  fmt.Printf("using configuration:\n%s\n",string(data))
 	return
 }
 

@@ -6,6 +6,7 @@ import (
   "log"
   "strings"
   "errors"
+  "fmt"
 )
 
 const (
@@ -56,6 +57,14 @@ func SipType(s string) int {
   return ReqUnknown
 }
 
+func SipT2S(req int) string{
+  switch(req){
+    case ReqInvite:
+      return "INVITE"
+    default:
+      return fmt.Sprintf("%d",req)
+  }
+}
 
 
 type SipCall struct {
@@ -65,6 +74,10 @@ type SipCall struct {
 
 type SipTransaction struct {
   Call *SipCall
+  LocalTag string
+  Local string
+  RemoteTag string
+  Remote string
 }
 
 
@@ -80,6 +93,7 @@ type SipMsg struct {
   // SipType: either from enum or 3digit
   SipType int
   Headers MsgHeaders
+  BodyList []string
   Direction int // enum 
 }
 
@@ -89,11 +103,12 @@ func (msg *SipMsg) Retrieve(str string) error{
   }
   str=strings.ReplaceAll(str,"\r\n","\n")
   strs:=strings.Split(str,"\n")
-  for _,str=range strs {
+  for i,str:=range strs {
     str=strings.TrimSpace(str)
-    log.Printf("str '%s' is %d long\n", str, len(str))
+    // log.Printf("str '%s' is %d long\n", str, len(str))
     if len(str)==0 {
-      continue
+      msg.BodyList=strs[i+1:]
+      break
     }
     parts:=strings.SplitN(str,":",2)
     if len(parts)<2 {

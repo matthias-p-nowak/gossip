@@ -8,9 +8,16 @@ tests:
       - failed from the beginning
     calls:
       - number: 420999888777
+        noa: 4
         steps:
         - out: INVITE
           to: 4797778239
+          noa: 4
           headers: |
-            Call-Id: {{ RandStr 10}}
+            Call-ID: {{ RandStr 10}}
           alias: initial invite
+          tags: 100rel
+          sdp: offer dummy
+          templates:
+            to: "<{{.To}}@{{.Remote}};noa={{.Bnoa}}>"
+          
