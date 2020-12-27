@@ -19,5 +19,4 @@ tests:
           tags: 100rel
           sdp: offer dummy
           templates:
-            to: "<{{.To}}@{{.Remote}};noa={{.Bnoa}}>"
           

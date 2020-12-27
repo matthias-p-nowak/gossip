@@ -2,7 +2,6 @@ package tester
 
 import (
 	"bytes"
-	"fmt"
 	"gossip/sipmsg"
 	"gossip/utils"
 	"log"
@@ -29,57 +28,99 @@ type Builder struct {
 }
 
 type BData struct {
-	Msg       *sipmsg.SipMsg
-	CallId    string
-	LocalTag  string
-	RemoteTag string
-	Transport string
-  ToNumber  string
-  ToNoa string
-  FromNumber string
-  FromNoa string
-  
+	Msg        *sipmsg.SipMsg
+	CallId     string
+	CSeq       int
+	LocalTag   string
+	RemoteTag  string
+	Transport  string
+	ToNumber   string
+	ToNoa      string
+	FromNumber string
+	FromNoa    string
+	Request    string
+	Localhost  string
 }
 
-func (d *BData) fill(msg *sipmsg.SipMsg) {
+func (d *BData) fill(ci *utils.CallItem, msg *sipmsg.SipMsg) {
 	d.Msg = msg
-	d.CallId = msg.Transaction.Call.CallId
-	d.LocalTag = msg.Transaction.LocalTag
-	d.RemoteTag = msg.Transaction.RemoteTag
+	if msg != nil {
+		d.CallId = msg.Transaction.Call.CallId
+		d.LocalTag = msg.Transaction.LocalTag
+		d.RemoteTag = msg.Transaction.RemoteTag
+	} else {
+		d.CallId = utils.RandString(10)
+		d.LocalTag = utils.RandString(10)
+	}
 	//
+	if len(ci.Noa) > 0 {
+		d.ToNoa = ci.Noa
+	} else {
+		d.ToNoa = "2"
+	}
+	if len(ci.RLcallParty.Noa) > 0 {
+		d.FromNoa = ci.RLcallParty.Noa
+	} else {
+		d.FromNoa = "2"
+	}
 }
 
-func (d *BData) fillDefault(ci *utils.CallItem) {
-	d.CallId = utils.RandString(10)
-	d.LocalTag = utils.RandString(10)
-  if len(ci.Noa)>0 { d.ToNoa=ci.Noa} else { d.ToNoa="2" }
-  if len(ci.RLcallParty.Noa)>0 { d.FromNoa=ci.RLcallParty.Noa}else{  d.FromNoa="2"}
+func GetOrDefault(m map[string]string, key, def string) string {
+	val, ok := m[key]
+	if ok {
+		return val
+	}
+	return def
 }
-
-func GetOrDefault(m map[string]string, key,def string) string {
-  val,ok:=m[key]
-  if ok { return val }
-  return def
-}
-
 
 func addHeader(h sipmsg.MsgHeaders, name string, val string) {
 	h[name] = append(h[name], val)
 }
 
-func build(prev *sipmsg.SipMsg, ci *utils.CallItem, req int, remote string) (b *Builder) {
-	// for debugging and error messages
+func LogError(ci *utils.CallItem, reason, msg string, err error) {
 	cp := ci.RLcallParty
 	st := cp.RLsingleTest
 	ts := st.RLtestSuite
 	fn := ts.RLfileName
-	//
+	log.Printf("%s in %s: %s/%s/%s \n%s\n", reason, fn, ts.Name, st.Name, cp.Number, msg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	os.Exit(2)
+}
+
+func (b *Builder) fromTemplate(ci *utils.CallItem, id, t string) string {
+	str, ok := ci.Templates[id]
+	if !ok {
+		str = t
+	}
+	templ, err := b.templ.Parse(str)
+	if err != nil {
+		LogError(ci, "wrong template", str, err)
+	}
+	bb := new(bytes.Buffer)
+	err = templ.Execute(bb, b.data)
+	if err != nil {
+		LogError(ci, "not executing ", str, err)
+	}
+	return bb.String()
+}
+
+func buildSip(prev *sipmsg.SipMsg, ci *utils.CallItem, req int, remote string) (b *Builder) {
+	var call *sipmsg.SipCall
+	var trans *sipmsg.SipTransaction
 	b = new(Builder)
 	msg := new(sipmsg.SipMsg)
 	b.msg = msg
 	msg.Prev = prev
 	msg.SipType = req
 	data := new(BData)
+	b.data = data
+	templ := template.New("SipMsg")
+	templ = templ.Funcs(funcMap)
+	b.templ = templ
+	b.data = data
+	data.Request = sipmsg.SipT2S(req)
 	var err error
 	if req >= 100 {
 		for p := prev; p != nil; p = p.Prev {
@@ -96,11 +137,7 @@ func build(prev *sipmsg.SipMsg, ci *utils.CallItem, req int, remote string) (b *
 	}
 	data.Transport = trParts[1]
 	// filling other data
-  data.fillDefault(ci)
-	var call *sipmsg.SipCall
-	var trans *sipmsg.SipTransaction
 	if prev != nil {
-		data.fill(prev)
 		trans = prev.Transaction
 		call = trans.Call
 		// TODO when do we have new transactions?
@@ -111,81 +148,125 @@ func build(prev *sipmsg.SipMsg, ci *utils.CallItem, req int, remote string) (b *
 		trans.Call = call
 	}
 	msg.Transaction = trans
-	templ := template.New("SipMsg")
-	templ = templ.Funcs(funcMap)
+	switch req {
+	case sipmsg.ReqInvite, sipmsg.ReqPrack:
+		call.CallSeq++
+	default:
+	}
+	data.fill(ci, prev)
 	if len(ci.Headers) > 0 {
-		templ, err = templ.Parse(ci.Headers)
-		if err != nil {
-			log.Printf("wrong template in %s: %s/%s/%s template below\n%s\n", fn, ts.Name, st.Name, cp.Number, ci.Headers)
-			log.Fatal(err)
-		}
-		bb := new(bytes.Buffer)
-		err = templ.Execute(bb, data)
-		if err != nil {
-			log.Printf("error in %s: %s/%s/%s template below\n%s\n", fn, ts.Name, st.Name, cp.Number, ci.Headers)
-			log.Fatal(err)
-		}
-		str := bb.String()
+		str := b.fromTemplate(ci, "headers", ci.Headers)
+		// store provided headers
 		err = msg.Retrieve(str)
 		if err != nil {
-			log.Printf("error in %s: %s/%s/%s expanded template below\n%s\n", fn, ts.Name, st.Name, cp.Number, str)
-			log.Fatal(err)
+			LogError(ci, "couldn't get headers from", str, err)
 		}
 	}
-	b.templ = templ
-	b.data = data
 	// completing the message
 	// trial
 	// TODO change from short to long form
+	// ##### Call-ID
 	val, ok := msg.Headers["Call-ID"]
 	if ok {
 		if len(val) > 1 {
-			log.Printf("too many Call-ID's in %s: %s/%s/%s", fn, ts.Name, st.Name, cp.Number)
-			os.Exit(2)
+			LogError(ci, "too many Call-ID's", val[0], nil)
 		}
 		call.CallId = val[0]
 	} else {
-		addHeader(msg.Headers, "Call-ID", call.CallId)
+		t := "{{ .CallId }}"
+		t = b.fromTemplate(ci, "callid", t)
+		addHeader(msg.Headers, "Call-ID", t)
 	}
+	// ##### CSeq
 	val, ok = msg.Headers["CSeq"]
 	if ok {
 		if len(val) > 1 {
-			log.Printf("too many CSeq's in %s: %s/%s/%s", fn, ts.Name, st.Name, cp.Number)
-			os.Exit(2)
+			LogError(ci, "too many CSeq's", val[0], nil)
 		}
 		csf := strings.Fields(val[0])
 		v, err := strconv.Atoi(csf[0])
 		if err != nil {
-			log.Printf("CSeq error in %s: %s/%s/%s", fn, ts.Name, st.Name, cp.Number)
-			log.Fatal(err)
+			LogError(ci, "CSeq error", val[0], err)
 		}
 		call.CallSeq = v
 	} else {
-		switch req {
-		case sipmsg.ReqInvite, sipmsg.ReqPrack:
-			call.CallSeq++
-		default:
-		}
 		var v string
 		if prev != nil {
 			v = prev.Headers["CSeq"][0]
 		} else {
-			v = fmt.Sprintf("%d %s", call.CallSeq, sipmsg.SipT2S(req))
+			v = "{{.CSeq}} {{ .Request }}"
+			v = b.fromTemplate(ci, "cseq", v)
 		}
 		addHeader(msg.Headers, "CSeq", v)
 	}
+	// ##### Max-Forwards
 	val, ok = msg.Headers["Max-Forwards"]
 	if ok {
 		if len(val) > 1 {
-			log.Printf("too many Call-ID's in %s: %s/%s/%s", fn, ts.Name, st.Name, cp.Number)
-			os.Exit(2)
+			LogError(ci, "too many Max-Forwards's", val[0], nil)
 		}
 	} else {
 		addHeader(msg.Headers, "Max-Forwards", "70")
 	}
+	// ##### From
 	val, ok = msg.Headers["From"]
 	if ok {
+		if len(val) > 1 {
+			LogError(ci, "too many From's", val[0], nil)
+		}
+		// TODO regexp/grep the "from" field
 	} else {
+		var v string
+		if prev != nil {
+			v = trans.Local
+		} else {
+			if req < 100 {
+				v = "<{{.FromNumber}}@{{.Localhost}};noa={{.FromNoa}}>;tag={{.LocalTag}}"
+				v = b.fromTemplate(ci, "from", v)
+			} else {
+				LogError(ci, "can't start with a response", "-no from-", nil)
+			}
+		}
+		addHeader(msg.Headers, "From", v)
+	}
+	// ##### To
+	val, ok = msg.Headers["To"]
+	if ok {
+		if len(val) > 1 {
+			LogError(ci, "too many To's", val[0], nil)
+		}
+		// TODO regexp/grep the "to" field
+	} else {
+		var v string
+		if prev != nil {
+			v = trans.Remote
+		} else {
+			if req < 100 {
+				v = "<{{.ToNumber}}@{{.Transport}};noa={{.ToNoa}}>"
+				v = b.fromTemplate(ci, "to", v)
+			} else {
+				LogError(ci, "can't start with a response", "-no to-", nil)
+			}
+		}
+		addHeader(msg.Headers, "To", v)
 	}
 	return
+}
+
+func (b *Builder) createSDP(ci *utils.CallItem) {
+	addHeader(b.msg.Headers, "Content-Type", "application/sdp")
+	h := ci.SdpTags
+	if h["create"] {
+		if h["dummy"] {
+      var l []string
+      l=append(l,"v=0")
+      l=append(l,"o=gossip 1 1 IN IP4 127.0.0.1")
+      l=append(l,"s=gossip dummy session")
+      l=append(l,"c=IN IP4 127.0.0.1")
+      l=append(l,"t=0 0")
+      l=append(l,"m=audio 63999 RTP/AVP 0")
+      l=append(l,"a=rtpmap:0 PCMU/8000")
+      b.msg.BodyList=l
+		}
+	}
 }

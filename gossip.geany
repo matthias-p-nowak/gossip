@@ -28,12 +28,16 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=0
-FILE_NAME_0=902;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Ftester%2Ftester.go;0;2
-FILE_NAME_1=670;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fsipmsg%2Fsipmsg.go;0;2
-FILE_NAME_2=0;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fitem.go;0;2
-FILE_NAME_3=210;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fmessage.go;0;2
-FILE_NAME_4=3409;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fold%2Fdirector.go;0;2
+current_page=4
+FILE_NAME_0=1498;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fgossip.go;0;2
+FILE_NAME_1=0;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fsipmsg%2Fitem.go;0;2
+FILE_NAME_2=775;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fsipmsg%2Fsipmsg.go;0;2
+FILE_NAME_3=2194;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Ftester%2Ftester.go;0;2
+FILE_NAME_4=4264;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Ftester%2Fbuilder.go;0;2
+FILE_NAME_5=523;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Futils%2Futilities.go;0;2
+FILE_NAME_6=716;Go;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Futils%2Ftestspecs.go;0;2
+FILE_NAME_7=220;YAML;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Ftests%2Ftest1.yaml;0;2
+FILE_NAME_8=16;None;0;EUTF-8;0;1;0;%2Fhome%2Fme%2Fprojects%2Fgossip%2Fdbg;0;2
 
 [VTE]
 last_dir=/home/me/projects/gossip/tester
@@ -55,9 +59,9 @@ generate_tag_prefs=0
 external_dirs=
 
 [build-menu]
-NF_00_LB=_Make
-NF_00_CM=go build
-NF_00_WD=%p
+NF_00_LB=Format
+NF_00_CM=gofmt -w %f
+NF_00_WD=%d
 EX_00_LB=_Run
 EX_00_CM=go run gossip.go tests
 EX_00_WD=%p
