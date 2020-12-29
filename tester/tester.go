@@ -1,6 +1,7 @@
 package tester
 
 import (
+	"gossip/infra"
 	"gossip/sipmsg"
 	"gossip/utils"
 	"log"
@@ -10,6 +11,8 @@ import (
 var (
 	testLocks = make(map[*utils.SingleTest]*sync.Mutex)
 	remIdx    int
+	// Running: if false then stop all tests
+	Running bool
 )
 
 type Tester struct {
@@ -64,8 +67,6 @@ func (pt *PartyTest) RunCall() {
 			pt.steps[ci.Alias] = i
 		}
 	}
-	// TODO get a remote side
-
 	// barrier
 	pt.te.wg_setup.Done()
 	pt.te.wg_setup.Wait()
@@ -94,25 +95,25 @@ func (pt *PartyTest) advance() {
 
 func (pt *PartyTest) execute(ci *utils.CallItem) {
 	if len(ci.Out) > 0 {
-    var msg *sipmsg.SipMsg
+		var item *sipmsg.Item
 		req := sipmsg.SipType(ci.Out)
 		if req < 100 {
-			msg = pt.makeRequest(ci, req)
+			item = pt.makeRequest(ci, req)
+		} else {
+			log.Fatalln("### not yet implemented")
 		}
-    it:=sipmsg.CreateItem(msg)
-	// TODO send the message to the provider to send it further
-  
+		// TODO send the message to the provider to send it further
+		infra.Transmit(item)
 	}
 }
 
-func (pt *PartyTest) makeRequest(ci *utils.CallItem, req int) (msg *sipmsg.SipMsg) {
-	msg = new(sipmsg.SipMsg)
+func (pt *PartyTest) makeRequest(ci *utils.CallItem, req int) *sipmsg.Item {
 	var prev *sipmsg.SipMsg
 	// TODO if previous is specified, use that one
 	// else
 	{
-		l := len(pt.msgs) 
-    if l >= 2 {
+		l := len(pt.msgs)
+		if l >= 2 {
 			prev = pt.msgs[l-2]
 		}
 	}
@@ -120,7 +121,9 @@ func (pt *PartyTest) makeRequest(ci *utils.CallItem, req int) (msg *sipmsg.SipMs
 	if len(ci.SdpTags) > 0 {
 		b.createSDP(ci)
 	}
-	return
+	item := b.buildItem()
+	item.RemoteEP = pt.te.Remote
+	return item
 }
 
 func Create(test *utils.SingleTest, cfg *utils.Config) (te *Tester) {
@@ -134,9 +137,11 @@ func Create(test *utils.SingleTest, cfg *utils.Config) (te *Tester) {
 	te = new(Tester)
 	te.test = test
 	te.lock = lock // avoiding to lookup the map
+	// finding a remote
 	remotes := cfg.Remote
 	remIdx = (remIdx + 1) % len(remotes)
 	te.Remote = remotes[remIdx]
+	//
 	utils.Claim()
 	return
 }

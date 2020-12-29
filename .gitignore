@@ -14,6 +14,11 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 gossip
+gossip.debug
+gossip.tags
 *.log
 snippets.go
 notes/
+old
+go.sum
+

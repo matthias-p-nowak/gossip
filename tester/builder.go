@@ -256,17 +256,23 @@ func buildSip(prev *sipmsg.SipMsg, ci *utils.CallItem, req int, remote string) (
 func (b *Builder) createSDP(ci *utils.CallItem) {
 	addHeader(b.msg.Headers, "Content-Type", "application/sdp")
 	h := ci.SdpTags
-	if h["create"] {
+	if h["offer"] {
 		if h["dummy"] {
-      var l []string
-      l=append(l,"v=0")
-      l=append(l,"o=gossip 1 1 IN IP4 127.0.0.1")
-      l=append(l,"s=gossip dummy session")
-      l=append(l,"c=IN IP4 127.0.0.1")
-      l=append(l,"t=0 0")
-      l=append(l,"m=audio 63999 RTP/AVP 0")
-      l=append(l,"a=rtpmap:0 PCMU/8000")
-      b.msg.BodyList=l
+			var l []string
+			l = append(l, "v=0")
+			l = append(l, "o=gossip 1 1 IN IP4 127.0.0.1")
+			l = append(l, "s=gossip dummy session")
+			l = append(l, "c=IN IP4 127.0.0.1")
+			l = append(l, "t=0 0")
+			l = append(l, "m=audio 63999 RTP/AVP 0")
+			l = append(l, "a=rtpmap:0 PCMU/8000")
+			b.msg.BodyList = l
 		}
 	}
+}
+
+func (b *Builder) buildItem() *sipmsg.Item {
+	item := new(sipmsg.Item)
+  item.Msg=b.msg
+	return item
 }
