@@ -2,19 +2,19 @@ package utils
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
-  "time"
 	"math/rand"
-	//"os"
-	//"io"
-)
+	"strings"
+	"time"
 
+	"gopkg.in/yaml.v2"
+)
 
 var (
 	// Alphabet comprises the symbols for creating random strings
 	Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	tRemote  int
 )
 
 // Config contains the config data provided by YAML
@@ -53,11 +53,26 @@ func GetConfig(fn string) (cfg *Config, err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-  data,err=yaml.Marshal(cfg)
-  fmt.Printf("using configuration:\n%s\n",string(data))
+	data, err = yaml.Marshal(cfg)
+	if err != nil {
+		log.Println("Marshalling error")
+		return
+	}
+	fmt.Printf("using configuration:\n%s\n", string(data))
+	for _, l := range cfg.Local {
+		parts := strings.Split(l, "/")
+		if len(parts) < 2 {
+			log.Fatalf("local '%s' is not of the form <transport>/<host>:<port>, with transport being udp or tcp\n", l)
+		}
+	}
+	for _, r := range cfg.Remote {
+		parts := strings.Split(r, "/")
+		if len(parts) < 2 {
+			log.Fatalf("remote '%s' is not of the form <transport>/<host>:<port>, with transport being udp or tcp\n", r)
+		}
+	}
 	return
 }
-
 
 // RandStrings returns a string of length <l>
 func RandString(l int) string {
@@ -67,4 +82,20 @@ func RandString(l int) string {
 		bb[i] = Alphabet[rand.Intn(aLen)]
 	}
 	return string(bb)
+}
+
+func (cfg *Config) GetTransport() (local, remote string) {
+	tRemote = (tRemote + 1) % len(cfg.Remote)
+	remote = cfg.Remote[tRemote]
+	parts := strings.Split(remote, "/")
+	transport := parts[0]
+	for _, l := range cfg.Local {
+		parts = strings.Split(l, "/")
+		if parts[0] == transport {
+			local = l
+			return
+		}
+	}
+	log.Fatal("could not find a valid local endpoint")
+	return
 }

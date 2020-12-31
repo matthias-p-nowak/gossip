@@ -168,6 +168,7 @@ func (p *UdpProvider) Sender() {
 		if item == nil {
 			continue
 		}
+		item.Prepare4Send()
 		log.Fatal("### not yet implemented")
 		// TODO: implement sending it over UDP
 	}
@@ -235,6 +236,7 @@ func (p *TcpProvider) Sender() {
 		// TODO: implement sending on this provider
 		// need to find out, if there is an existing connection - then using this one
 		// otherwise, creating a new connection
+		log.Fatal("### not yet implemented")
 	}
 }
 

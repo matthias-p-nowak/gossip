@@ -6,25 +6,37 @@ import (
 	"gossip/utils"
 	"log"
 	"sync"
+	"time"
 )
 
 var (
+	// testLocks is a map to Mutex references
 	testLocks = make(map[*utils.SingleTest]*sync.Mutex)
-	remIdx    int
 	// Running: if false then stop all tests
 	Running bool
 )
 
+// Tester executes a single test, coordinating goroutines that execute the parties
 type Tester struct {
-	test     *utils.SingleTest
-	Remote   string // the selected remote side
-	lock     *sync.Mutex
-	running  bool
+	test *utils.SingleTest
+	// the selected remote side
+	Remote string
+	// the corresponding local site
+	Local string
+	// points to an entry in testLocks, shared as reference
+	lock *sync.Mutex
+	// indicates that the test is running - good for stopping goroutines
+	running bool
+	// implementing barriers - simply doing Done()+Wait()
+	// barrier for setup section
 	wg_setup sync.WaitGroup
-	wg_run   sync.WaitGroup
-	wg_down  sync.WaitGroup
+	// barrier for the test execution action
+	wg_run sync.WaitGroup
+	// barrier for the cleanup - this one indicates all goroutines are done
+	wg_down sync.WaitGroup
 }
 
+// Run executes the master part of the test
 func (te *Tester) Run() {
 	defer utils.Release()
 	defer te.lock.Unlock()
@@ -37,6 +49,7 @@ func (te *Tester) Run() {
 		pt := te.CreatePartyTest(cp)
 		go pt.RunCall()
 	}
+	// wait for all goroutines to finish
 	te.wg_down.Wait()
 }
 
@@ -93,12 +106,38 @@ func (pt *PartyTest) advance() {
 	}
 }
 
-func (pt *PartyTest) execute(ci *utils.CallItem) {
-	if len(ci.Out) > 0 {
+func (pt *PartyTest) logError(step *utils.CallStep, err error) {
+	party := pt.party
+	number := party.Number
+	test := party.RLsingleTest
+	suite := test.RLtestSuite
+	log.Fatalf("%s/%s:%s %s", suite.Name, test.Name, number, err)
+}
+
+func (pt *PartyTest) execute(step *utils.CallStep) {
+	// a delay
+	if len(step.Delay) > 0 {
+		dur, err := time.ParseDuration(step.Delay)
+		if err != nil {
+			pt.logError(step, err)
+		}
+		ch := time.After(dur)
+		for pt.te.running {
+			select {
+			// timed out
+			case <-ch:
+				break
+				// TODO when message arrives, it is a failure
+
+			}
+		}
+	}
+	// an out message
+	if len(step.Out) > 0 {
 		var item *sipmsg.Item
-		req := sipmsg.SipType(ci.Out)
+		req := sipmsg.SipType(step.Out)
 		if req < 100 {
-			item = pt.makeRequest(ci, req)
+			item = pt.makeRequest(step, req)
 		} else {
 			log.Fatalln("### not yet implemented")
 		}
@@ -107,7 +146,7 @@ func (pt *PartyTest) execute(ci *utils.CallItem) {
 	}
 }
 
-func (pt *PartyTest) makeRequest(ci *utils.CallItem, req int) *sipmsg.Item {
+func (pt *PartyTest) makeRequest(ci *utils.CallStep, req int) *sipmsg.Item {
 	var prev *sipmsg.SipMsg
 	// TODO if previous is specified, use that one
 	// else
@@ -138,9 +177,8 @@ func Create(test *utils.SingleTest, cfg *utils.Config) (te *Tester) {
 	te.test = test
 	te.lock = lock // avoiding to lookup the map
 	// finding a remote
-	remotes := cfg.Remote
-	remIdx = (remIdx + 1) % len(remotes)
-	te.Remote = remotes[remIdx]
+	te.Local, te.Remote = cfg.GetTransport()
+
 	//
 	utils.Claim()
 	return

@@ -5,7 +5,8 @@ import (
 	"gossip/sipmsg"
 	"gossip/utils"
 	"log"
-	"os"
+
+	// "os"
 	"strconv"
 	"strings"
 	"text/template"
@@ -42,7 +43,7 @@ type BData struct {
 	Localhost  string
 }
 
-func (d *BData) fill(ci *utils.CallItem, msg *sipmsg.SipMsg) {
+func (d *BData) fill(ci *utils.CallStep, msg *sipmsg.SipMsg) {
 	d.Msg = msg
 	if msg != nil {
 		d.CallId = msg.Transaction.Call.CallId
@@ -63,6 +64,13 @@ func (d *BData) fill(ci *utils.CallItem, msg *sipmsg.SipMsg) {
 	} else {
 		d.FromNoa = "2"
 	}
+	d.FromNumber = ci.RLcallParty.Number
+	if len(ci.To) > 0 {
+		d.ToNumber = ci.To
+	} else {
+		log.Fatal("### not yet implemented")
+	}
+
 }
 
 func GetOrDefault(m map[string]string, key, def string) string {
@@ -77,19 +85,19 @@ func addHeader(h sipmsg.MsgHeaders, name string, val string) {
 	h[name] = append(h[name], val)
 }
 
-func LogError(ci *utils.CallItem, reason, msg string, err error) {
+func LogError(ci *utils.CallStep, reason, msg string, err error) {
 	cp := ci.RLcallParty
 	st := cp.RLsingleTest
 	ts := st.RLtestSuite
 	fn := ts.RLfileName
-	log.Printf("%s in %s: %s/%s/%s \n%s\n", reason, fn, ts.Name, st.Name, cp.Number, msg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	os.Exit(2)
+	log.Fatalf("%s in %s: %s/%s/%s \n%s\n%s\n", reason, fn, ts.Name, st.Name, cp.Number, msg, err)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// os.Exit(2)
 }
 
-func (b *Builder) fromTemplate(ci *utils.CallItem, id, t string) string {
+func (b *Builder) fromTemplate(ci *utils.CallStep, id, t string) string {
 	str, ok := ci.Templates[id]
 	if !ok {
 		str = t
@@ -106,7 +114,7 @@ func (b *Builder) fromTemplate(ci *utils.CallItem, id, t string) string {
 	return bb.String()
 }
 
-func buildSip(prev *sipmsg.SipMsg, ci *utils.CallItem, req int, remote string) (b *Builder) {
+func buildSip(prev *sipmsg.SipMsg, ci *utils.CallStep, req int, remote string) (b *Builder) {
 	var call *sipmsg.SipCall
 	var trans *sipmsg.SipTransaction
 	b = new(Builder)
@@ -250,12 +258,19 @@ func buildSip(prev *sipmsg.SipMsg, ci *utils.CallItem, req int, remote string) (
 		}
 		addHeader(msg.Headers, "To", v)
 	}
+	if req < 100 {
+		v := "{{.Request}} sip:{{.ToNumber}}@{{.Transport}};noa={{.ToNoa}} SIP/2.0"
+		v = b.fromTemplate(ci, "start", v)
+		msg.StartLine = v
+	} else {
+		log.Fatal("### not yet implemented")
+	}
 	return
 }
 
-func (b *Builder) createSDP(ci *utils.CallItem) {
+func (b *Builder) createSDP(step *utils.CallStep) {
 	addHeader(b.msg.Headers, "Content-Type", "application/sdp")
-	h := ci.SdpTags
+	h := step.SdpTags
 	if h["offer"] {
 		if h["dummy"] {
 			var l []string
@@ -273,6 +288,6 @@ func (b *Builder) createSDP(ci *utils.CallItem) {
 
 func (b *Builder) buildItem() *sipmsg.Item {
 	item := new(sipmsg.Item)
-  item.Msg=b.msg
+	item.Msg = b.msg
 	return item
 }
