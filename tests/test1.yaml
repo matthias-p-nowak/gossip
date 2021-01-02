@@ -18,5 +18,4 @@ tests:
           alias: initial invite
           tags: 100rel
           sdp: offer dummy
-          templates:
         - delay: 30s

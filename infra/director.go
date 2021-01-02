@@ -1,12 +1,12 @@
 package infra
 
 import (
-  "gossip/sipmsg"
-  "sync"
-  "regexp"
-  "log"
-  "time"
-  "runtime"
+	"gossip/sipmsg"
+	"log"
+	"regexp"
+	"runtime"
+	"sync"
+	"time"
 )
 
 // used as index for the different maps
@@ -22,8 +22,9 @@ var (
 	DirectorChans []director
 	// the related mutex for access serialization
 	NumberLock []sync.RWMutex
-	viaReg     *regexp.Regexp
-	siptelReg  *regexp.Regexp
+	// regular expressions, created in init
+	viaReg    *regexp.Regexp
+	siptelReg *regexp.Regexp
 )
 
 // maps a certain tag to a channel for gossip items
@@ -31,7 +32,6 @@ type director map[string]chan *sipmsg.Item
 
 // init gets called during initialization, each init function in each file
 func init() {
-
 	NumberLock = make([]sync.RWMutex, DirectoryEnd)
 	DirectorChans = make([]director, DirectoryEnd)
 	for i := 0; i < DirectoryEnd; i++ {
@@ -51,7 +51,6 @@ func init() {
 	}
 	siptelReg = re
 }
-
 
 // cleanUpDirector removes idle channels from the maps,
 // idle means that the channel is full,
@@ -103,4 +102,3 @@ func SendItem(dir int, key string, it *sipmsg.Item) (ok bool) {
 	}
 	return
 }
-

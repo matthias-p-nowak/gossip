@@ -21,6 +21,8 @@ var (
 	Running = true
 )
 
+// handleSignals stops the testing
+// Quit is "Control+\"
 func handleSignals() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM)

@@ -5,6 +5,7 @@ import (
 	"gossip/sipmsg"
 	"gossip/utils"
 	"log"
+	"strings"
 	"sync"
 	"time"
 )
@@ -20,9 +21,11 @@ var (
 type Tester struct {
 	test *utils.SingleTest
 	// the selected remote side
-	Remote string
+	Remote      string
+	RemoteParts []string
 	// the corresponding local site
-	Local string
+	Local      string
+	LocalParts []string
 	// points to an entry in testLocks, shared as reference
 	lock *sync.Mutex
 	// indicates that the test is running - good for stopping goroutines
@@ -53,24 +56,30 @@ func (te *Tester) Run() {
 	te.wg_down.Wait()
 }
 
+// CreatePartyTest creates each party's own goroutine with data
 func (te *Tester) CreatePartyTest(cp int) (pt *PartyTest) {
 	pt = new(PartyTest)
 	pt.te = te
 	pt.party = te.test.CallParties[cp]
+	pt.builder = newBuilder()
+	pt.msgsMap = make(map[string]*sipmsg.SipMsg)
 	return
 }
 
+// PartyTest is test datastructure for a call party
 type PartyTest struct {
-	te *Tester
-
-	party    *utils.CallParty
+	msgs     []*sipmsg.SipMsg
+	msgsMap  map[string]*sipmsg.SipMsg
 	next     string
+	party    *utils.CallParty
 	previous string
 	si       int
 	steps    map[string]int
-	msgs     []*sipmsg.SipMsg
+	te       *Tester
+	builder  *Builder
 }
 
+// RunCall is the goroutine for one call party, almost deterministic inside this one
 func (pt *PartyTest) RunCall() {
 	number := pt.party.Number
 	log.Println("setting up for " + number)
@@ -80,6 +89,7 @@ func (pt *PartyTest) RunCall() {
 			pt.steps[ci.Alias] = i
 		}
 	}
+	// TODO register party's number in director
 	// barrier
 	pt.te.wg_setup.Done()
 	pt.te.wg_setup.Wait()
@@ -89,6 +99,13 @@ func (pt *PartyTest) RunCall() {
 			break
 		}
 		pt.execute(pt.party.Steps[pt.si])
+		// TODO implement optional messages, like a Cancel or a Bye
+	}
+	// first party that finishes finishes the whole test
+	if pt.te.running {
+		// give the others time to end
+		time.Sleep(100 * time.Millisecond)
+		pt.te.running = false
 	}
 	// barrier
 	pt.te.wg_run.Done()
@@ -98,14 +115,17 @@ func (pt *PartyTest) RunCall() {
 	pt.te.wg_down.Done()
 }
 
+// advance finds out where to go next to
 func (pt *PartyTest) advance() {
 	if len(pt.next) > 0 {
 		pt.si = pt.steps[pt.next]
+		pt.next = ""
 	} else {
 		pt.si++
 	}
 }
 
+// logError logs a fatal error and also gives and indication where in which test it failed
 func (pt *PartyTest) logError(step *utils.CallStep, err error) {
 	party := pt.party
 	number := party.Number
@@ -114,8 +134,10 @@ func (pt *PartyTest) logError(step *utils.CallStep, err error) {
 	log.Fatalf("%s/%s:%s %s", suite.Name, test.Name, number, err)
 }
 
+// execute carries out one step, based on what is specified
 func (pt *PartyTest) execute(step *utils.CallStep) {
-	// a delay
+	// #########################################################
+	// ##### looking for a delay
 	if len(step.Delay) > 0 {
 		dur, err := time.ParseDuration(step.Delay)
 		if err != nil {
@@ -132,7 +154,8 @@ func (pt *PartyTest) execute(step *utils.CallStep) {
 			}
 		}
 	}
-	// an out message
+	// #########################################################
+	// ##### looking for an out message
 	if len(step.Out) > 0 {
 		var item *sipmsg.Item
 		req := sipmsg.SipType(step.Out)
@@ -144,27 +167,37 @@ func (pt *PartyTest) execute(step *utils.CallStep) {
 		// TODO send the message to the provider to send it further
 		infra.Transmit(item)
 	}
+	// #########################################################
 }
 
-func (pt *PartyTest) makeRequest(ci *utils.CallStep, req int) *sipmsg.Item {
+// makeRequest creates a SIP message
+func (pt *PartyTest) makeRequest(step *utils.CallStep, req int) *sipmsg.Item {
 	var prev *sipmsg.SipMsg
-	// TODO if previous is specified, use that one
-	// else
-	{
-		l := len(pt.msgs)
-		if l >= 2 {
-			prev = pt.msgs[l-2]
+	if len(step.Previous) > 0 {
+		prev = pt.msgsMap[step.Previous]
+	} else {
+		l := len(pt.msgs) - 1
+		switch {
+		case l == -1:
+			prev = nil
+		case req >= 100:
+			// TODO search for a non finished transaction
+			log.Fatal("### not yet implemented")
+		default:
+			prev = pt.msgs[l]
 		}
+
 	}
-	b := buildSip(prev, ci, req, pt.te.Remote)
-	if len(ci.SdpTags) > 0 {
-		b.createSDP(ci)
+	b := builder(prev, step, req, pt.te)
+	if len(step.SdpTags) > 0 {
+		b.createSDP(step)
 	}
-	item := b.buildItem()
+	item := b.getItem()
 	item.RemoteEP = pt.te.Remote
 	return item
 }
 
+// Create a new Tester
 func Create(test *utils.SingleTest, cfg *utils.Config) (te *Tester) {
 	// Create is called in main thread
 	lock, ok := testLocks[test]
@@ -178,7 +211,8 @@ func Create(test *utils.SingleTest, cfg *utils.Config) (te *Tester) {
 	te.lock = lock // avoiding to lookup the map
 	// finding a remote
 	te.Local, te.Remote = cfg.GetTransport()
-
+	te.LocalParts = strings.Split(te.Local, "/")
+	te.RemoteParts = strings.Split(te.Remote, "/")
 	//
 	utils.Claim()
 	return

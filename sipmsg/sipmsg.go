@@ -2,7 +2,6 @@ package sipmsg
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"regexp"
 	"strconv"
@@ -26,6 +25,15 @@ const (
 var (
 	// ThreeDigits matches 3 digits
 	ThreeDigits *regexp.Regexp
+	Req2String  = map[int]string{
+		ReqInvite: "INVITE",
+		ReqCancel: "CANCEL",
+		ReqBye:    "BYE",
+		ReqAck:    "ACK",
+		ReqPrack:  "PRACK",
+		100:       "100 Trying",
+		200:       "200 Ok",
+	}
 )
 
 func init() {
@@ -59,16 +67,6 @@ func SipType(s string) int {
 		return ReqPrack
 	}
 	return ReqUnknown
-}
-
-// SipT2S turns the enum into a string
-func SipT2S(req int) string {
-	switch req {
-	case ReqInvite:
-		return "INVITE"
-	default:
-		return fmt.Sprintf("%d", req)
-	}
 }
 
 // SipCall Call related info
